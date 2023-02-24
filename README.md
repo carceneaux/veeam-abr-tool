@@ -11,7 +11,8 @@ The [veeam-abr-tool.ps1](veeam-abr-tool.ps1) PowerShell script, included in this
 
 ## Downloading & running the script
 
-_Note: The below steps **must** be performed on the server where Veeam Backup & Replication is installed._
+> **Note**
+> The below steps **must** be performed on the server where Veeam Backup & Replication is installed.
 
 1. Open PowerShell ensuring that you are using an [administrative shell](https://www.howtogeek.com/194041/how-to-open-the-command-prompt-as-administrator-in-windows-8.1/)
 2. The below code can be used to download the script to the current user's desktop and execute it:
