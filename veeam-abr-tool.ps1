@@ -12,7 +12,7 @@ NOTE: Script is designed to be run directly on the Veeam Backup & Replication se
 VBR Server Local Administrator account PS Credential Object
 
 .PARAMETER SkipSetup
-Flag to skips install/config of the AsBuiltReport tool
+Flag to skip install/config of the AsBuiltReport tool
 
 .OUTPUTS
 veeam-abr-tool is interactive and leaves an HTML file on the current user's desktop
