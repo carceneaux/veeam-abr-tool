@@ -25,7 +25,7 @@ Start-BitsTransfer "https://raw.githubusercontent.com/carceneaux/veeam-abr-tool/
 
 Once the script has been executed, it will then interactively ask for information. Here's a sample of the recommended responses:
 
-1. *Enter the name of the Author for this As Built Report []:* `<Full name of person running generating this report>`
+1. *Enter the name of the Author for this As Built Report []:* `<Full name of person generating this report>`
 2. *Would you like to enter Company information for the As Built Report? (y/n):* `y`
 3. *Enter the Full Company Name:* `<Company name>`
 4. *Enter the Company Short Name:* `<leave blank>`
