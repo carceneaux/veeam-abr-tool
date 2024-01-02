@@ -49,10 +49,10 @@ GITHUB: https://github.com/carceneaux
 #Requires -RunAsAdministrator
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory = $false)]
-  [System.Management.Automation.PSCredential]$Credential,
-	[Parameter(Mandatory = $false)]
-	[switch]$SkipSetup
+    [Parameter(Mandatory = $false)]
+    [System.Management.Automation.PSCredential]$Credential,
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipSetup
 )
 
 $DirectorySeparatorChar = [System.IO.Path]::DirectorySeparatorChar
@@ -178,62 +178,84 @@ Function Get-Software {
 # Checking if Veeam Backup & Replication is installed
 $vbr = Get-Software | Where-Object { $_.DisplayName -eq "Veeam Backup & Replication Server" } | Select-Object DisplayName, Version
 if ($vbr) {
-  Write-Host "Veeam Backup & Replication Server found: $($vbr.Version)" -ForegroundColor Green
-} else {
-  Throw "Veeam Backup & Replication not found on this server. Script will not work unless run on a server where Veeam Backup & Replication is installed."
+    Write-Host "Veeam Backup & Replication Server found: $($vbr.Version)" -ForegroundColor Green
+}
+else {
+    Throw "Veeam Backup & Replication not found on this server. Script will not work unless run on a server where Veeam Backup & Replication is installed."
 }
 
 # Skipping AsBuiltReport configuration if specified
 if ($false -eq $SkipSetup) {
-  Write-Host "Installing required PowerShell module (AsBuiltReport.Veeam.VBR) and its dependencies..."
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  Find-PackageProvider -Name Nuget -ForceBootstrap -IncludeDependencies -Force | Out-Null
-  # Determine if AsBuiltReport.Veeam.VBR module is already present
-  if ( -not(Get-Module -ListAvailable -Name AsBuiltReport.Veeam.VBR)){
-    Install-Module -Name AsBuiltReport.Veeam.VBR -SkipPublisherCheck -Force -ErrorAction Stop
-    Write-Host "AsBuiltReport.Veeam.VBR module installed successfully" -ForegroundColor Green
-  } else {
-    Write-Host "AsBuiltReport.Veeam.VBR module already present" -ForegroundColor Green
-  }
+    Write-Host "Installing required PowerShell module (AsBuiltReport.Veeam.VBR) and its dependencies..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Find-PackageProvider -Name Nuget -ForceBootstrap -IncludeDependencies -Force | Out-Null
+    # Determine if AsBuiltReport.Veeam.VBR module is already present
+    $module = Get-Module -ListAvailable -Name AsBuiltReport.Veeam.VBR
+    $latest = Find-Module -Name AsBuiltReport.Veeam.VBR
+    switch ($true) {
+    ($null -eq $module) { 
+            Write-Host "Installing AsBuiltReport.Veeam.VBR module..."
+            Install-Module -Name AsBuiltReport.Veeam.VBR -SkipPublisherCheck -Force -ErrorAction Stop
+            Write-Host "AsBuiltReport.Veeam.VBR module installed successfully" -ForegroundColor Green
+            break
+        }
+    ($module.Version.ToString() -ne $latest.Version) {
+            Write-Host "AsBuiltReport.Veeam.VBR module is already installed: $($module.Version.ToString())"
+            Write-Host "Upgrading AsBuiltReport.Veeam.VBR module to the latest version: $($($latest.Version))"
+            Uninstall-Module -Name AsBuiltReport.Veeam.VBR -Force -ErrorAction Stop
+            Install-Module -Name AsBuiltReport.Veeam.VBR -SkipPublisherCheck -Force -ErrorAction Stop
+            Write-Host "AsBuiltReport.Veeam.VBR module upgraded successfully" -ForegroundColor Green
+        }
+        Default {
+            Write-Host "AsBuiltReport.Veeam.VBR module is already installed: $($module.Version.ToString())"
+        }
+    }
 
-  # Generating AsBuilt configuration file
-  New-AsBuiltConfig
+    # Deleting current configuration files if located in the default folder (we're about to create new ones)
+    if (Test-Path -Path "$($Home + $DirectorySeparatorChar)AsBuiltReport") {
+        Remove-Item "$($Home + $DirectorySeparatorChar)AsBuiltReport$($DirectorySeparatorChar)*.json" -Recurse -Force
+    }
+
+    # Generating AsBuilt configuration file
+    New-AsBuiltConfig
    
-  # Generating AsBuilt report configuration file
-  Write-Host ""
-  $ReportConfigFolder = Read-Host -Prompt "Enter the full path of the folder to use for storing the configuration files [$($Home + $DirectorySeparatorChar)AsBuiltReport]"
-  if (($ReportConfigFolder -like $null) -or ($ReportConfigFolder -eq "")) {
-      $ReportConfigFolder = $Home + $DirectorySeparatorChar + "AsBuiltReport"
-  }
-  New-AsBuiltReportConfig -Report Veeam.VBR -FolderPath $ReportConfigFolder
+    # Generating AsBuilt report configuration file
+    Write-Host ""
+    $ReportConfigFolder = Read-Host -Prompt "Enter the full path of the folder to use for storing the configuration files [$($Home + $DirectorySeparatorChar)AsBuiltReport]"
+    if (($ReportConfigFolder -like $null) -or ($ReportConfigFolder -eq "")) {
+        $ReportConfigFolder = $Home + $DirectorySeparatorChar + "AsBuiltReport"
+    }
+    New-AsBuiltReportConfig -Report Veeam.VBR -FolderPath $ReportConfigFolder
 
-  # Updating report configuration
-  $ReportConfigFile = $ReportConfigFolder + $DirectorySeparatorChar + "AsBuiltReport.Veeam.VBR.json"
-  (Get-Content $ReportConfigFile).Replace(": 1",": 3") | Set-Content $ReportConfigFile
-  (Get-Content $ReportConfigFile).Replace("`"EnableHardwareInventory`": false","`"EnableHardwareInventory`": true") | Set-Content $ReportConfigFile
+    # Updating report configuration
+    $ReportConfigFile = $ReportConfigFolder + $DirectorySeparatorChar + "AsBuiltReport.Veeam.VBR.json"
+  (Get-Content $ReportConfigFile).Replace(": 1", ": 3") | Set-Content $ReportConfigFile
+  (Get-Content $ReportConfigFile).Replace("`"EnableHardwareInventory`": false", "`"EnableHardwareInventory`": true") | Set-Content $ReportConfigFile
 }
 
 # Retrieving AsBuiltReport config files
 if ($null -eq $ReportConfigFolder) {
-  Write-Host ""
-  $ReportConfigFolder = Read-Host -Prompt "Enter the full path of the folder used to store the configuration files [$($Home + $DirectorySeparatorChar)AsBuiltReport]"
-  if (($ReportConfigFolder -like $null) -or ($ReportConfigFolder -eq "")) {
-      $ReportConfigFolder = $Home + $DirectorySeparatorChar + "AsBuiltReport"
-  }
+    Write-Host ""
+    $ReportConfigFolder = Read-Host -Prompt "Enter the full path of the folder used to store the configuration files [$($Home + $DirectorySeparatorChar)AsBuiltReport]"
+    if (($ReportConfigFolder -like $null) -or ($ReportConfigFolder -eq "")) {
+        $ReportConfigFolder = $Home + $DirectorySeparatorChar + "AsBuiltReport"
+    }
 }
 $ConfigFile = $ReportConfigFolder + $DirectorySeparatorChar + "AsBuiltReport.json"
 $ReportConfigFile = $ReportConfigFolder + $DirectorySeparatorChar + "AsBuiltReport.Veeam.VBR.json"
 
 # Validating config files
 if (Test-Path -Path $ConfigFile -PathType Leaf) {
-  Write-Host "AsBuiltReport config file present: $ConfigFile" -ForegroundColor Green
-} else {
-  Throw "Unable to find the AsBuiltReport config file at the specified location ($ConfigFile)"
+    Write-Host "AsBuiltReport config file present: $ConfigFile" -ForegroundColor Green
+}
+else {
+    Throw "Unable to find the AsBuiltReport config file at the specified location ($ConfigFile)"
 }
 if (Test-Path -Path $ReportConfigFile -PathType Leaf) {
-  Write-Host "AsBuiltReport report config file present: $ReportConfigFile" -ForegroundColor Green
-} else {
-  Throw "Unable to find the AsBuiltReport report config file at the specified location ($ReportConfigFile)"
+    Write-Host "AsBuiltReport report config file present: $ReportConfigFile" -ForegroundColor Green
+}
+else {
+    Throw "Unable to find the AsBuiltReport report config file at the specified location ($ReportConfigFile)"
 }
 
 # Setting desktop location
@@ -241,12 +263,12 @@ $Desktop = [Environment]::GetFolderPath("Desktop")
 
 # Retrieving credentials
 if ($null -eq $Credential) {
-  $Credential = Get-Credential -Message "Local administrator account required"
+    $Credential = Get-Credential -Message "Local administrator account required"
 }
 
 # Validating credentials
 if ($null -eq $Credential) {
-  throw "User terminated script by not entering credentials"
+    throw "User terminated script by not entering credentials"
 }
 
 # Retrieving server fqdn
