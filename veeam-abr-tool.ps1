@@ -40,7 +40,7 @@ Generates a report skipping AsBuiltReport configuration
 
 .NOTES
 NAME:  veeam-abr-tool.ps1
-VERSION: 1.0
+VERSION: 1.2
 AUTHOR: Chris Arceneaux
 TWITTER: @chris_arceneaux
 GITHUB: https://github.com/carceneaux
@@ -193,21 +193,20 @@ if ($false -eq $SkipSetup) {
     $module = Get-Module -ListAvailable -Name AsBuiltReport.Veeam.VBR
     $latest = Find-Module -Name AsBuiltReport.Veeam.VBR
     switch ($true) {
-    ($null -eq $module) { 
-            Write-Host "Installing AsBuiltReport.Veeam.VBR module..."
+    ($null -eq $module) {
             Install-Module -Name AsBuiltReport.Veeam.VBR -SkipPublisherCheck -Force -ErrorAction Stop
             Write-Host "AsBuiltReport.Veeam.VBR module installed successfully" -ForegroundColor Green
             break
         }
     ($module.Version.ToString() -ne $latest.Version) {
-            Write-Host "AsBuiltReport.Veeam.VBR module is already installed: $($module.Version.ToString())"
+            Write-Host "AsBuiltReport.Veeam.VBR module found: $($module.Version.ToString())" -ForegroundColor Green
             Write-Host "Upgrading AsBuiltReport.Veeam.VBR module to the latest version: $($($latest.Version))"
             Uninstall-Module -Name AsBuiltReport.Veeam.VBR -Force -ErrorAction Stop
             Install-Module -Name AsBuiltReport.Veeam.VBR -SkipPublisherCheck -Force -ErrorAction Stop
             Write-Host "AsBuiltReport.Veeam.VBR module upgraded successfully" -ForegroundColor Green
         }
         Default {
-            Write-Host "AsBuiltReport.Veeam.VBR module is already installed: $($module.Version.ToString())"
+            Write-Host "AsBuiltReport.Veeam.VBR module found: $($module.Version.ToString())" -ForegroundColor Green
         }
     }
 
